@@ -1,0 +1,8 @@
+{
+  "name": "GOOOAL CUP Tra Cứu",
+  "description": "Website tra cứu thông tin cá nhân và lịch thi đấu chi tiết giải GOOOAL CUP BY GOLDGI bằng Số Điện Thoại hoặc Tên",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
