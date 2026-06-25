@@ -70,11 +70,29 @@ export default function App() {
         if (parsedConfig && parsedConfig.spreadsheetId) {
           setConfig(parsedConfig);
           setIsDemo(false);
+          // Persist in localStorage
+          localStorage.setItem('saved_tournament_config', decodedStr);
           loadTournamentData(parsedConfig);
           return;
         }
       } catch (e) {
         console.error("Failed to decode tournament configuration from URL parameter.", e);
+      }
+    }
+
+    // Check localStorage fallback if no URL param
+    const savedConfigStr = localStorage.getItem('saved_tournament_config');
+    if (savedConfigStr) {
+      try {
+        const parsedConfig: SpreadsheetConfig = JSON.parse(savedConfigStr);
+        if (parsedConfig && parsedConfig.spreadsheetId) {
+          setConfig(parsedConfig);
+          setIsDemo(false);
+          loadTournamentData(parsedConfig);
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to load tournament configuration from localStorage.", e);
       }
     }
 
@@ -136,6 +154,8 @@ export default function App() {
 
   const handleSaveConfig = (newConfig: SpreadsheetConfig) => {
     setConfig(newConfig);
+    // Save to localStorage so it stays persisted
+    localStorage.setItem('saved_tournament_config', JSON.stringify(newConfig));
     setIsAdminView(false);
     loadTournamentData(newConfig);
   };
