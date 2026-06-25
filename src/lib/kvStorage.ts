@@ -1,51 +1,37 @@
 import { SpreadsheetConfig } from '../types';
 
-// We use a dedicated, unique bucket ID for GOOOAL CUP
-const BUCKET_ID = 'gc_goldgi_v3_9a2f7c';
-
-// Helper to get a unified storage key so all domains (dev, preview, production) share the same config
-function getStorageKey(): string {
-  return 'global_tournament_config';
-}
-
 /**
- * Fetch tournament configuration from the zero-setup cloud database
+ * Fetch tournament configuration from our full-stack Express API backend
  */
 export async function fetchConfigFromZeroDb(): Promise<SpreadsheetConfig | null> {
-  const key = getStorageKey();
-  const url = `https://kvdb.io/${BUCKET_ID}/${key}`;
+  const url = `/api/config`;
 
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      if (response.status === 404) {
-        console.log('Chưa có cấu hình lưu trên Cloud Database cho tên miền này.');
-        return null;
-      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
     if (data && data.spreadsheetId) {
-      console.log('Đã tải cấu hình thành công từ Zero-Setup Cloud Database cho tên miền:', window.location.hostname);
+      console.log('Đã tải cấu hình thành công từ máy chủ backend.');
       return data as SpreadsheetConfig;
     }
   } catch (error) {
-    console.warn('Không thể tải cấu hình từ Cloud Database, sử dụng LocalStorage làm dự phòng:', error);
+    console.warn('Không thể tải cấu hình từ máy chủ, sử dụng LocalStorage làm dự phòng:', error);
   }
   return null;
 }
 
 /**
- * Save tournament configuration to the zero-setup cloud database
+ * Save tournament configuration to our full-stack Express API backend
  */
 export async function saveConfigToZeroDb(config: SpreadsheetConfig): Promise<{ success: boolean; error?: string }> {
-  const key = getStorageKey();
-  const url = `https://kvdb.io/${BUCKET_ID}/${key}`;
+  const url = `/api/config`;
 
   try {
     const response = await fetch(url, {
-      method: 'POST', // kvdb.io accepts POST or PUT to write keys
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -56,13 +42,13 @@ export async function saveConfigToZeroDb(config: SpreadsheetConfig): Promise<{ s
       throw new Error(`Mã lỗi HTTP: ${response.status}`);
     }
 
-    console.log('Đã đồng bộ cấu hình thành công lên Cloud Database cho tên miền:', window.location.hostname);
+    console.log('Đã đồng bộ cấu hình thành công lên máy chủ backend.');
     return { success: true };
   } catch (error: any) {
-    console.error('Lỗi khi đồng bộ lên Cloud Database:', error);
+    console.error('Lỗi khi đồng bộ lên máy chủ backend:', error);
     return { 
       success: false, 
-      error: error.message || 'Không thể kết nối tới máy chủ lưu trữ cấu hình.' 
+      error: error.message || 'Không thể kết nối tới máy chủ để lưu cấu hình.' 
     };
   }
 }

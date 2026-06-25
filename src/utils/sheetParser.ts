@@ -40,35 +40,84 @@ export function normalizeText(text: string | undefined | null): string {
  * Fetches CSV data from a public Google Sheet tab.
  */
 export async function fetchSheetCsv(spreadsheetId: string, tabName?: string): Promise<any[]> {
-  const baseUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq`;
-  const params = new URLSearchParams({
-    tqx: 'out:csv',
-  });
-  if (tabName) {
-    params.append('sheet', tabName);
-  }
-
-  const url = `${baseUrl}?${params.toString()}`;
-  
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Không thể kết nối đến Google Sheets. Hãy đảm bảo bạn đã bật chế độ "Bất kỳ ai có liên kết đều có thể xem" (Anyone with the link can view).`);
-  }
-
-  const csvText = await response.text();
-  
-  return new Promise((resolve, reject) => {
-    Papa.parse(csvText, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        resolve(results.data);
-      },
-      error: (error) => {
-        reject(error);
+  const fetchWithTab = async (tab?: string): Promise<any[]> => {
+    // Try our backend server-side proxy first (bypasses browser CORS and private session restrictions)
+    let csvText = '';
+    try {
+      const proxyParams = new URLSearchParams();
+      proxyParams.append('spreadsheetId', spreadsheetId);
+      if (tab) {
+        proxyParams.append('sheet', tab);
       }
+      const proxyUrl = `/api/sheet-proxy?${proxyParams.toString()}`;
+      const proxyResponse = await fetch(proxyUrl);
+      if (proxyResponse.ok) {
+        csvText = await proxyResponse.text();
+      } else {
+        throw new Error(`Proxy returned status ${proxyResponse.status}`);
+      }
+    } catch (proxyErr) {
+      console.warn("Server-side proxy fetch failed, falling back to direct client-side fetch from Google Sheets:", proxyErr);
+      // Fallback: direct browser fetch
+      const baseUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq`;
+      const params = new URLSearchParams({
+        tqx: 'out:csv',
+      });
+      if (tab) {
+        params.append('sheet', tab);
+      }
+
+      const url = `${baseUrl}?${params.toString()}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      csvText = await response.text();
+    }
+    
+    // Check if Google returned an HTML login or error page instead of actual CSV
+    if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html') || csvText.includes('google-signin')) {
+      throw new Error('Google Sheets returned an HTML page. Please ensure your Google Sheet has "Anyone with the link can view" permission enabled.');
+    }
+
+    return new Promise((resolve, reject) => {
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          resolve(results.data);
+        },
+        error: (error) => {
+          reject(error);
+        }
+      });
     });
-  });
+  };
+
+  try {
+    if (tabName) {
+      const data = await fetchWithTab(tabName);
+      if (data && data.length > 0) {
+        return data;
+      }
+      throw new Error('Empty data returned for tab name');
+    } else {
+      return await fetchWithTab();
+    }
+  } catch (firstError) {
+    if (tabName) {
+      console.warn(`Could not load tab "${tabName}". Trying fallback to default first tab (without tab name parameter)...`, firstError);
+      try {
+        const fallbackData = await fetchWithTab();
+        if (fallbackData && fallbackData.length > 0) {
+          return fallbackData;
+        }
+      } catch (secondError) {
+        console.error('Fallback fetch also failed:', secondError);
+      }
+    }
+    throw new Error(`Không thể kết nối đến Google Sheets hoặc cột dữ liệu không khớp. Hãy đảm bảo bạn đã bật chế độ chia sẻ "Bất kỳ ai có liên kết đều có thể xem" (Anyone with the link can view) và tên tab/cột được cấu hình đúng.`);
+  }
 }
 
 /**
@@ -89,6 +138,35 @@ export function getPropertyValue(row: any, fieldName: string | undefined): strin
     }
   }
   
+  return '';
+}
+
+/**
+ * Safely accesses a semantic property using configured mapping first,
+ * then falling back to automatic matching of common keywords.
+ */
+export function getSemanticValue(row: any, fieldName: string | undefined, fallbacks: string[]): string {
+  if (!row) return '';
+
+  // 1. If we have a specific configured fieldName, try that first
+  if (fieldName) {
+    const directVal = getPropertyValue(row, fieldName);
+    if (directVal) return directVal;
+  }
+
+  // 2. Otherwise, check row keys for any of the fallback terms (substring match, case-insensitive)
+  const rowKeys = Object.keys(row);
+  for (const fallback of fallbacks) {
+    const fbLower = fallback.toLowerCase().trim();
+    for (const key of rowKeys) {
+      const keyLower = key.toLowerCase().trim();
+      if (keyLower.includes(fbLower) || fbLower.includes(keyLower)) {
+        const val = String(row[key]).trim();
+        if (val) return val;
+      }
+    }
+  }
+
   return '';
 }
 
@@ -229,12 +307,20 @@ export function processSingleSheetPlayers(
   ].filter((f): f is string => !!f);
 
   rows.forEach((row, idx) => {
-    const name = getPropertyValue(row, mapping.playerName);
-    const phone = getPropertyValue(row, mapping.playerPhone);
+    const name = getSemanticValue(row, mapping.playerName, [
+      'họ và tên', 'họ tên', 'tên bé', 'tên con', 'tên của bé', 'thí sinh', 'họ tên bé', 'tên', 'tên của con'
+    ]);
+    const phone = getSemanticValue(row, mapping.playerPhone, [
+      'số điện thoại', 'sđt', 'sđt ba/mẹ', 'số đt', 'điện thoại', 'phone', 'zalo', 'liên hệ', 'sdt', 'sdt ba', 'sdt mẹ', 'ba/mẹ'
+    ]);
     if (!name || !phone) return;
 
-    const age = getPropertyValue(row, mapping.playerAge);
-    const group = getPropertyValue(row, mapping.playerGroup);
+    const age = getSemanticValue(row, mapping.playerAge, [
+      'tháng tuổi', 'tuổi', 'nhóm tuổi', 'tuổi của bé', 'năm sinh', 'tháng', 'tuoi'
+    ]);
+    const group = getSemanticValue(row, mapping.playerGroup, [
+      'bảng đấu', 'bảng', 'nhóm', 'group', 'bảng thi đấu', 'bang'
+    ]);
     const customData = getCustomFieldsData(row, mappedFields);
 
     const player: PlayerInfo = {
@@ -248,18 +334,18 @@ export function processSingleSheetPlayers(
     players.push(player);
 
     // Look for match columns or extract from direct columns on the same row (e.g. Baby single sheet schedules)
-    const luotDau = getPropertyValue(row, 'Lượt thi đấu') || getPropertyValue(row, 'Lượt đấu') || getPropertyValue(row, 'Vòng đấu') || getPropertyValue(row, mapping.matchRound || '');
-    const gioDau = getPropertyValue(row, 'Giờ đấu') || getPropertyValue(row, 'Giờ thi') || getPropertyValue(row, mapping.matchTime || '');
-    const ngayDau = getPropertyValue(row, 'Ngày');
-    const gioCheckin = getPropertyValue(row, 'Giờ check in') || getPropertyValue(row, 'Checkin') || getPropertyValue(row, 'Giờ check-in');
+    const luotDau = getSemanticValue(row, mapping.matchRound, ['lượt thi đấu', 'lượt đấu', 'vòng đấu', 'vòng']);
+    const gioDau = getSemanticValue(row, mapping.matchTime, ['giờ đấu', 'giờ thi', 'giờ', 'time']);
+    const ngayDau = getPropertyValue(row, 'Ngày') || getPropertyValue(row, 'ngày');
+    const gioCheckin = getPropertyValue(row, 'Giờ check in') || getPropertyValue(row, 'Checkin') || getPropertyValue(row, 'Giờ check-in') || getPropertyValue(row, 'check in');
     
     // Extract SBD, parent, address, skill with mapping or fallback defaults
-    const sbd = (mapping.playerSbd ? getPropertyValue(row, mapping.playerSbd) : '') || getPropertyValue(row, 'SBD') || getPropertyValue(row, 'Số báo danh') || getPropertyValue(row, 'Mã số') || getPropertyValue(row, 'Số báo danh (SBD)');
-    const parentName = (mapping.playerParentName ? getPropertyValue(row, mapping.playerParentName) : '') || getPropertyValue(row, 'Họ và tên ba/ mẹ') || getPropertyValue(row, 'Họ và tên ba mẹ') || getPropertyValue(row, 'Tên bố mẹ') || getPropertyValue(row, 'Phụ huynh');
-    const address = (mapping.playerAddress ? getPropertyValue(row, mapping.playerAddress) : '') || getPropertyValue(row, 'Địa chỉ hiện tại của bé') || getPropertyValue(row, 'Địa chỉ') || getPropertyValue(row, 'Địa chỉ hiện tại') || getPropertyValue(row, 'Địa chỉ liên hệ');
-    const skill = (mapping.playerSkill ? getPropertyValue(row, mapping.playerSkill) : '') || getPropertyValue(row, 'Kỹ năng hiện tại của bé') || getPropertyValue(row, 'Kỹ năng') || getPropertyValue(row, 'Kỹ năng của bé');
+    const sbd = getSemanticValue(row, mapping.playerSbd, ['sbd', 'số báo danh', 'mã số', 'mã bé', 'ms']);
+    const parentName = getSemanticValue(row, mapping.playerParentName, ['họ và tên ba/ mẹ', 'họ và tên ba mẹ', 'tên phụ huynh', 'họ tên phụ huynh', 'bố mẹ', 'ba mẹ', 'phụ huynh']);
+    const address = getSemanticValue(row, mapping.playerAddress, ['địa chỉ hiện tại của bé', 'địa chỉ', 'địa chỉ hiện tại', 'nơi ở']);
+    const skill = getSemanticValue(row, mapping.playerSkill, ['kỹ năng hiện tại của bé', 'kỹ năng', 'kỹ năng của bé']);
 
-    const sanDau = getPropertyValue(row, 'Sân') || getPropertyValue(row, 'Sân đấu') || getPropertyValue(row, mapping.matchCourt || '') || 'Khu vực thi đấu chính';
+    const sanDau = getSemanticValue(row, mapping.matchCourt, ['sân', 'sân đấu', 'khu vực', 'court']) || 'Khu vực thi đấu chính';
 
     let hasCreatedDirectMatch = false;
     if (luotDau || gioDau || gioCheckin || sbd) {

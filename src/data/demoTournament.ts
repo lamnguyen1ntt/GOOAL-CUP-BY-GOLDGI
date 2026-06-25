@@ -12,9 +12,20 @@ export const DEMO_CONFIG: SpreadsheetConfig = {
   manualPlayersCount: '2067',
   mapping: {
     playerName: 'Họ và tên của bé:',
-    playerPhone: 'Số điện thoại của ba/mẹ (SĐT bắt buộc là số đã đăng ký Zalo)',
-    playerAge: 'Bé hiện bao nhiêu tháng tuổi?',
+    playerPhone: 'SĐT',
+    playerAge: 'Độ tuổi',
     playerGroup: 'Bảng đấu',
+    playerSbd: 'SBD',
+    playerParentName: 'Họ và tên ba/ mẹ',
+    playerAddress: 'Địa chỉ',
+    playerSkill: '',
+    matchRound: 'Lượt thi đấu',
+    matchTime: 'Giờ đấu',
+    matchCourt: 'Sân',
+    matchPlayer1Name: '',
+    matchPlayer2Name: '',
+    matchStatus: '',
+    matchResult: '',
   }
 };
 
