@@ -17,6 +17,7 @@ import {
   DEMO_PLAYERS, 
   DEMO_MATCHES 
 } from './data/demoTournament';
+import { fetchTournamentConfigFromDb } from './lib/supabase';
 import AdminPanel from './components/AdminPanel';
 import LookupForm from './components/LookupForm';
 import MatchSchedule from './components/MatchSchedule';
@@ -58,49 +59,69 @@ export default function App() {
   const [enteredPassword, setEnteredPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Initialize: decode URL parameters or load default config
+  // Initialize: decode URL parameters, load from Supabase database, or load default config
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const encodedConfig = params.get('t');
+    const initializeApp = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const encodedConfig = params.get('t');
 
-    if (encodedConfig) {
+      // 1. Check URL parameters first (explicit sharing/override)
+      if (encodedConfig) {
+        try {
+          const decodedStr = decodeURIComponent(atob(encodedConfig));
+          const parsedConfig: SpreadsheetConfig = JSON.parse(decodedStr);
+          if (parsedConfig && parsedConfig.spreadsheetId) {
+            setConfig(parsedConfig);
+            setIsDemo(false);
+            // Persist in localStorage as fallback
+            localStorage.setItem('saved_tournament_config', decodedStr);
+            loadTournamentData(parsedConfig);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to decode tournament configuration from URL parameter.", e);
+        }
+      }
+
+      // 2. Try fetching from Supabase Database (for global persistence across browsers)
       try {
-        const decodedStr = decodeURIComponent(atob(encodedConfig));
-        const parsedConfig: SpreadsheetConfig = JSON.parse(decodedStr);
-        if (parsedConfig && parsedConfig.spreadsheetId) {
-          setConfig(parsedConfig);
+        const dbConfig = await fetchTournamentConfigFromDb();
+        if (dbConfig && dbConfig.spreadsheetId) {
+          setConfig(dbConfig);
           setIsDemo(false);
-          // Persist in localStorage
-          localStorage.setItem('saved_tournament_config', decodedStr);
-          loadTournamentData(parsedConfig);
+          // Sync to localStorage
+          localStorage.setItem('saved_tournament_config', JSON.stringify(dbConfig));
+          loadTournamentData(dbConfig);
           return;
         }
-      } catch (e) {
-        console.error("Failed to decode tournament configuration from URL parameter.", e);
+      } catch (dbError) {
+        console.error("Failed to load tournament configuration from Supabase.", dbError);
       }
-    }
 
-    // Check localStorage fallback if no URL param
-    const savedConfigStr = localStorage.getItem('saved_tournament_config');
-    if (savedConfigStr) {
-      try {
-        const parsedConfig: SpreadsheetConfig = JSON.parse(savedConfigStr);
-        if (parsedConfig && parsedConfig.spreadsheetId) {
-          setConfig(parsedConfig);
-          setIsDemo(false);
-          loadTournamentData(parsedConfig);
-          return;
+      // 3. Check localStorage fallback if no database config
+      const savedConfigStr = localStorage.getItem('saved_tournament_config');
+      if (savedConfigStr) {
+        try {
+          const parsedConfig: SpreadsheetConfig = JSON.parse(savedConfigStr);
+          if (parsedConfig && parsedConfig.spreadsheetId) {
+            setConfig(parsedConfig);
+            setIsDemo(false);
+            loadTournamentData(parsedConfig);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to load tournament configuration from localStorage.", e);
         }
-      } catch (e) {
-        console.error("Failed to load tournament configuration from localStorage.", e);
       }
-    }
 
-    // Fallback/Default: Load Demo tournament so the user sees a finished product
-    setConfig(DEMO_CONFIG);
-    setIsDemo(true);
-    setPlayers(DEMO_PLAYERS);
-    setMatches(DEMO_MATCHES);
+      // 4. Fallback/Default: Load Demo tournament so the user sees a finished product
+      setConfig(DEMO_CONFIG);
+      setIsDemo(true);
+      setPlayers(DEMO_PLAYERS);
+      setMatches(DEMO_MATCHES);
+    };
+
+    initializeApp();
   }, []);
 
   // Fetch or reload tournament rows

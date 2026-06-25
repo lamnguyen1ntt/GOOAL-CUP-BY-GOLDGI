@@ -23,9 +23,14 @@ import {
   RefreshCw, 
   Eye, 
   ArrowLeft,
-  Grid
+  Grid,
+  Database,
+  Key,
+  Terminal,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { saveTournamentConfigToDb, getSupabaseCredentials } from '../lib/supabase';
 
 interface AdminPanelProps {
   onSaveConfig: (config: SpreadsheetConfig) => void;
@@ -76,6 +81,14 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
   const [step, setStep] = useState(1);
   const [shareableUrl, setShareableUrl] = useState('');
   const [isCopied, setIsCopied] = useState(false);
+
+  // Supabase Database Sync state
+  const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || '');
+  const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_anon_key') || '');
+  const [dbSyncing, setDbSyncing] = useState(false);
+  const [dbSyncSuccess, setDbSyncSuccess] = useState(false);
+  const [dbSyncError, setDbSyncError] = useState<string | null>(null);
+  const [showSqlGuide, setShowSqlGuide] = useState(false);
 
   // Initialize config if edit mode
   useEffect(() => {
@@ -278,6 +291,54 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
     
     setShareableUrl(generatedUrl);
     setStep(3);
+  };
+
+  const handleDatabaseSync = async () => {
+    setDbSyncing(true);
+    setDbSyncError(null);
+    setDbSyncSuccess(false);
+
+    // If they filled manual inputs, save them
+    if (supabaseUrl.trim() && supabaseKey.trim()) {
+      localStorage.setItem('supabase_url', supabaseUrl.trim());
+      localStorage.setItem('supabase_anon_key', supabaseKey.trim());
+    }
+
+    const currentCreds = getSupabaseCredentials();
+    if (!currentCreds) {
+      setDbSyncError('Vui lòng điền đầy đủ Supabase URL và Public Anon Key.');
+      setDbSyncing(false);
+      return;
+    }
+
+    try {
+      const configObj: SpreadsheetConfig = {
+        spreadsheetId,
+        playersTabName: selectedPlayersTab,
+        matchesTabName: selectedMatchesTab,
+        mode,
+        mapping,
+        tournamentName,
+        organizerName,
+        adminPassword: adminPassword || undefined,
+        bannerUrl: bannerUrl || undefined,
+        footerText: footerText || undefined,
+        manualPlayersCount: manualPlayersCount || undefined,
+        manualRoundsCount: manualRoundsCount || undefined,
+      };
+
+      const result = await saveTournamentConfigToDb(configObj);
+      if (result.success) {
+        setDbSyncSuccess(true);
+        onSaveConfig(configObj);
+      } else {
+        setDbSyncError(result.error || 'Lỗi khi lưu cấu hình lên Supabase.');
+      }
+    } catch (err: any) {
+      setDbSyncError(err.message || 'Lỗi kết nối đến database Supabase.');
+    } finally {
+      setDbSyncing(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -950,6 +1011,144 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
                   </>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Supabase Database Sync Section */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-indigo-600 animate-pulse" />
+                <h3 className="font-bold text-slate-800 text-sm md:text-base">Lưu cấu hình vào Cloud Database (Supabase)</h3>
+              </div>
+              {getSupabaseCredentials() ? (
+                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-2xs font-extrabold rounded-full border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                  Đã kết nối Database
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-2xs font-extrabold rounded-full border border-amber-200">
+                  Chưa lưu lên đám mây
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Do bạn đã kết nối <b>Supabase</b> vào dự án Vercel, bạn chỉ cần đồng bộ cấu hình này lên database để khi truy cập tên miền gốc <b>https://gooal-cup-by-goldgi.vercel.app/</b> (không cần kèm theo chuỗi ký tự dài ngoằng phía sau), website vẫn luôn hiển thị giải đấu của bạn!
+            </p>
+
+            {/* Error or Success banners */}
+            {dbSyncError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">Lỗi đồng bộ:</p>
+                  <p>{dbSyncError}</p>
+                </div>
+              </div>
+            )}
+
+            {dbSyncSuccess && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  <Check className="w-4.5 h-4.5 text-emerald-600 stroke-[3]" />
+                  Đồng bộ thành công! 🎉
+                </div>
+                <p className="leading-relaxed">
+                  Cấu hình giải đấu đã được ghi nhận trên <b>Supabase Cloud Database</b>.
+                </p>
+                <div className="bg-white/80 p-3 rounded-lg border border-emerald-100 text-2xs space-y-1 font-sans text-slate-700 shadow-xs">
+                  <p className="font-bold text-emerald-950">📌 Bước cuối cùng để kích hoạt trên các thiết bị khác:</p>
+                  <p>1. Hãy vào trang quản trị <b>Vercel Project Settings &gt; Environment Variables</b>.</p>
+                  <p>2. Thêm 2 biến môi trường sau để ứng dụng Vercel tự động nhận diện kết nối đám mây:</p>
+                  <div className="bg-slate-100 p-2 rounded my-1.5 font-mono select-all text-2xs text-slate-800 border border-slate-200 space-y-1 break-all">
+                    <p><b>VITE_SUPABASE_URL</b> = {supabaseUrl || 'https://xxxx.supabase.co'}</p>
+                    <p><b>VITE_SUPABASE_ANON_KEY</b> = {supabaseKey || 'eyJhbGciOiJIUzI1Ni...'}</p>
+                  </div>
+                  <p className="mt-1 text-slate-500">3. Nhấn <b>Redeploy</b> dự án trên Vercel. Kể từ giờ, toàn bộ người dùng truy cập trang web của bạn đều sẽ tự động thấy giải đấu này!</p>
+                </div>
+              </div>
+            )}
+
+            {/* Form inputs for configuration */}
+            <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between">
+                <span className="text-2xs font-extrabold text-slate-500 uppercase tracking-wider">Thông tin cấu hình database</span>
+                <button 
+                  type="button"
+                  onClick={() => setShowSqlGuide(!showSqlGuide)}
+                  className="text-2xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                >
+                  <Terminal className="w-3 h-3" />
+                  {showSqlGuide ? 'Ẩn SQL' : 'Xem lệnh SQL tạo bảng'}
+                </button>
+              </div>
+
+              {showSqlGuide && (
+                <div className="p-3 bg-slate-900 text-slate-200 rounded-lg text-2xs font-mono space-y-2 leading-relaxed">
+                  <p className="text-amber-400 font-bold">👉 Truy cập SQL Editor của Supabase và chạy lệnh dưới đây:</p>
+                  <pre className="bg-slate-950 p-2 rounded overflow-x-auto text-slate-300 border border-slate-800 select-all font-mono break-all text-3xs">
+{`create table tournament_config (
+  id text primary key,
+  config jsonb not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Bật phân quyền truy cập công khai không cần auth
+alter table tournament_config enable row level security;
+create policy "Allow public read" on tournament_config for select using (true);
+create policy "Allow public upsert" on tournament_config for all using (true) with check (true);`}
+                  </pre>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-3xs font-extrabold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Key className="w-3 h-3" /> Supabase Project URL
+                  </label>
+                  <input 
+                    type="text"
+                    placeholder="https://your-project.supabase.co"
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg text-slate-800 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-3xs font-extrabold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Key className="w-3 h-3" /> Public Anon Key
+                  </label>
+                  <input 
+                    type="text"
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    value={supabaseKey}
+                    onChange={(e) => setSupabaseKey(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg text-slate-800 text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  disabled={dbSyncing}
+                  onClick={handleDatabaseSync}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-sm"
+                >
+                  {dbSyncing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Đang kết nối & đồng bộ cấu hình...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-4 h-4" />
+                      Lưu cấu hình & Đồng bộ lên Đám Mây
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
