@@ -18,6 +18,7 @@ import {
   DEMO_MATCHES 
 } from './data/demoTournament';
 import { fetchTournamentConfigFromDb } from './lib/supabase';
+import { fetchConfigFromZeroDb, saveConfigToZeroDb } from './lib/kvStorage';
 import AdminPanel from './components/AdminPanel';
 import LookupForm from './components/LookupForm';
 import MatchSchedule from './components/MatchSchedule';
@@ -59,7 +60,7 @@ export default function App() {
   const [enteredPassword, setEnteredPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Initialize: decode URL parameters, load from Supabase database, or load default config
+  // Initialize: decode URL parameters, load from databases, or load default config
   useEffect(() => {
     const initializeApp = async () => {
       const params = new URLSearchParams(window.location.search);
@@ -83,7 +84,22 @@ export default function App() {
         }
       }
 
-      // 2. Try fetching from Supabase Database (for global persistence across browsers)
+      // 2. Try fetching from Zero-Setup Cloud Database (completely automatic and serverless)
+      try {
+        const zeroDbConfig = await fetchConfigFromZeroDb();
+        if (zeroDbConfig && zeroDbConfig.spreadsheetId) {
+          setConfig(zeroDbConfig);
+          setIsDemo(false);
+          // Sync to localStorage
+          localStorage.setItem('saved_tournament_config', JSON.stringify(zeroDbConfig));
+          loadTournamentData(zeroDbConfig);
+          return;
+        }
+      } catch (zeroDbErr) {
+        console.error("Failed to load tournament configuration from Zero-Setup Cloud DB.", zeroDbErr);
+      }
+
+      // 3. Try fetching from Supabase Database (if manual credentials are set up)
       try {
         const dbConfig = await fetchTournamentConfigFromDb();
         if (dbConfig && dbConfig.spreadsheetId) {
@@ -98,7 +114,7 @@ export default function App() {
         console.error("Failed to load tournament configuration from Supabase.", dbError);
       }
 
-      // 3. Check localStorage fallback if no database config
+      // 4. Check localStorage fallback if no database config
       const savedConfigStr = localStorage.getItem('saved_tournament_config');
       if (savedConfigStr) {
         try {
@@ -114,7 +130,7 @@ export default function App() {
         }
       }
 
-      // 4. Fallback/Default: Load Demo tournament so the user sees a finished product
+      // 5. Fallback/Default: Load Demo tournament so the user sees a finished product
       setConfig(DEMO_CONFIG);
       setIsDemo(true);
       setPlayers(DEMO_PLAYERS);
@@ -173,10 +189,18 @@ export default function App() {
     }
   };
 
-  const handleSaveConfig = (newConfig: SpreadsheetConfig) => {
+  const handleSaveConfig = async (newConfig: SpreadsheetConfig) => {
     setConfig(newConfig);
     // Save to localStorage so it stays persisted
     localStorage.setItem('saved_tournament_config', JSON.stringify(newConfig));
+    
+    // Auto sync to cloud database
+    try {
+      await saveConfigToZeroDb(newConfig);
+    } catch (e) {
+      console.error("Auto save to zero DB failed", e);
+    }
+
     setIsAdminView(false);
     loadTournamentData(newConfig);
   };

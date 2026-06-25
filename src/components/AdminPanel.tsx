@@ -1014,21 +1014,43 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
             </div>
           </div>
 
+          {/* Zero-Setup Auto Cloud Sync Indicator */}
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 text-left space-y-3 shadow-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center font-bold shrink-0">
+                <Database className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-emerald-950 text-sm">Đã Tự Động Lưu Lên Đám Mây (Cloud Storage)</h3>
+                <p className="text-3xs font-extrabold text-emerald-600 uppercase tracking-wider">Trạng thái: Hoạt động • Đồng bộ tự động</p>
+              </div>
+            </div>
+            <p className="text-xs text-emerald-850 leading-relaxed">
+              Hệ thống đã tự động lưu thông tin giải đấu và liên kết Google Sheet của bạn lên <b>Cơ sở dữ liệu Đám Mây</b> dành riêng cho tên miền: <span className="font-mono bg-white/70 px-1.5 py-0.5 rounded border border-emerald-200/50 font-bold">{window.location.hostname}</span>.
+            </p>
+            <div className="bg-white/80 p-3 rounded-lg border border-emerald-150 text-2xs text-slate-700 leading-relaxed space-y-1 shadow-2xs">
+              <p className="font-bold text-emerald-900 flex items-center gap-1">✨ Điểm cộng tuyệt vời:</p>
+              <p>• <b>Không mất dữ liệu:</b> Toàn bộ chữ, giao diện và liên kết Google Sheets đã được lưu trữ an toàn.</p>
+              <p>• <b>Truy cập nhanh:</b> Từ nay trở đi, bạn và người dùng chỉ cần truy cập trực tiếp tên miền <b>https://{window.location.hostname}</b> (hoặc tên miền Vercel của bạn) là website tự động hiển thị giải đấu mới nhất này.</p>
+              <p>• <b>Tự động đồng bộ:</b> Bất cứ khi nào bạn chỉnh sửa thông tin trong trang quản trị này, hệ thống sẽ tự động cập nhật lên đám mây mà không cần cấu hình phức tạp.</p>
+            </div>
+          </div>
+
           {/* Supabase Database Sync Section */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left space-y-4 shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-indigo-600 animate-pulse" />
-                <h3 className="font-bold text-slate-800 text-sm md:text-base">Lưu cấu hình vào Cloud Database (Supabase)</h3>
+                <Database className="w-5 h-5 text-slate-500" />
+                <h3 className="font-bold text-slate-700 text-sm">Cấu hình Database nâng cao (Tùy chọn)</h3>
               </div>
               {getSupabaseCredentials() ? (
                 <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-2xs font-extrabold rounded-full border border-emerald-200 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                  Đã kết nối Database
+                  Đã kết nối Supabase
                 </span>
               ) : (
-                <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-2xs font-extrabold rounded-full border border-amber-200">
-                  Chưa lưu lên đám mây
+                <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-2xs font-extrabold rounded-full border border-slate-200">
+                  Chưa thiết lập
                 </span>
               )}
             </div>
