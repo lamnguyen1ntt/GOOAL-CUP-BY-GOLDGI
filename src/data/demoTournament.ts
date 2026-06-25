@@ -1,12 +1,15 @@
 import { PlayerInfo, MatchInfo, SpreadsheetConfig, AppMode } from '../types';
 
 export const DEMO_CONFIG: SpreadsheetConfig = {
-  spreadsheetId: 'demo_sheet_id',
+  spreadsheetId: '1Ospms64ic2jErN5sewOSyGOrfUNbzq2q0JzPxSLLn8o',
   playersTabName: 'Danh sách Bé đăng ký',
   matchesTabName: 'Lịch thi đấu',
   mode: AppMode.SINGLE_SHEET_PLAYERS,
-  tournamentName: 'GOOOAL CUP BY GOLDGI',
+  tournamentName: 'GOOAL CUP BY GOLDGI',
   organizerName: 'BỈM NHẬT BẢN GOLDGI',
+  bannerUrl: 'https://goldgi.com.vn/wp-content/uploads/2026/06/background-KV-01-2-scaled.jpg',
+  footerText: 'Phần mềm được phát triển bởi Lâm Awesomeboy',
+  manualPlayersCount: '2067',
   mapping: {
     playerName: 'Họ và tên của bé:',
     playerPhone: 'Số điện thoại của ba/mẹ (SĐT bắt buộc là số đã đăng ký Zalo)',

@@ -130,11 +130,29 @@ export default function App() {
         }
       }
 
-      // 5. Fallback/Default: Load Demo tournament so the user sees a finished product
-      setConfig(DEMO_CONFIG);
-      setIsDemo(true);
-      setPlayers(DEMO_PLAYERS);
-      setMatches(DEMO_MATCHES);
+      // 5. Fallback/Default: Load from DEMO_CONFIG (now configured with the real Google Sheet ID)
+      try {
+        setConfig(DEMO_CONFIG);
+        setIsDemo(false);
+        // Sync to localStorage
+        localStorage.setItem('saved_tournament_config', JSON.stringify(DEMO_CONFIG));
+        await loadTournamentData(DEMO_CONFIG);
+        
+        // Also auto-save this configuration to the global Zero-Setup Cloud DB if we initialized from default
+        // so that anyone else visiting sees the exact updated tournament
+        try {
+          await saveConfigToZeroDb(DEMO_CONFIG);
+        } catch (e) {
+          console.error("Auto save default to zero DB failed", e);
+        }
+        return;
+      } catch (err) {
+        console.error("Failed to load real data for default config, falling back to static demo data", err);
+        setConfig(DEMO_CONFIG);
+        setIsDemo(true);
+        setPlayers(DEMO_PLAYERS);
+        setMatches(DEMO_MATCHES);
+      }
     };
 
     initializeApp();
