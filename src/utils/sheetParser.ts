@@ -253,8 +253,9 @@ export function processSingleSheetMatches(
     // 2. Extract Players info from Player 1 and Player 2 columns
     if (p1Name && p1Phone) {
       const normPhone = normalizePhone(p1Phone);
-      if (!playersMap.has(normPhone)) {
-        playersMap.set(normPhone, {
+      const p1Key = `${normPhone}_${normalizeText(p1Name)}`;
+      if (!playersMap.has(p1Key)) {
+        playersMap.set(p1Key, {
           id: `player_p1_${idx}`,
           name: p1Name,
           phone: p1Phone,
@@ -267,8 +268,9 @@ export function processSingleSheetMatches(
 
     if (p2Name && p2Phone) {
       const normPhone = normalizePhone(p2Phone);
-      if (!playersMap.has(normPhone)) {
-        playersMap.set(normPhone, {
+      const p2Key = `${normPhone}_${normalizeText(p2Name)}`;
+      if (!playersMap.has(p2Key)) {
+        playersMap.set(p2Key, {
           id: `player_p2_${idx}`,
           name: p2Name,
           phone: p2Phone,
@@ -546,15 +548,24 @@ export function searchPlayerAndMatches(
     const playerNormName = normalizeText(player.name);
 
     const matchedMatches = matches.filter(match => {
-      // Check phone match
-      if (match.player1Phone && normalizePhone(match.player1Phone) === playerNormPhone) return true;
-      if (match.player2Phone && normalizePhone(match.player2Phone) === playerNormPhone) return true;
+      const m1PhoneNorm = match.player1Phone ? normalizePhone(match.player1Phone) : '';
+      const m2PhoneNorm = match.player2Phone ? normalizePhone(match.player2Phone) : '';
+      const m1NameNorm = normalizeText(match.player1Name);
+      const m2NameNorm = normalizeText(match.player2Name);
 
-      // Check name match
-      if (normalizeText(match.player1Name) === playerNormName) return true;
-      if (normalizeText(match.player2Name) === playerNormName) return true;
+      // Player 1 slot matches if:
+      // - Name matches AND (either there is no phone in slot, or phone matches)
+      // - OR, if there is no name in slot but phone is present and matches
+      const matchesP1 = (m1NameNorm === playerNormName && (!m1PhoneNorm || m1PhoneNorm === playerNormPhone)) ||
+                        (!m1NameNorm && m1PhoneNorm && m1PhoneNorm === playerNormPhone);
 
-      return false;
+      // Player 2 slot matches if:
+      // - Name matches AND (either there is no phone in slot, or phone matches)
+      // - OR, if there is no name in slot but phone is present and matches
+      const matchesP2 = (m2NameNorm === playerNormName && (!m2PhoneNorm || m2PhoneNorm === playerNormPhone)) ||
+                        (!m2NameNorm && m2PhoneNorm && m2PhoneNorm === playerNormPhone);
+
+      return matchesP1 || matchesP2;
     });
 
     return {

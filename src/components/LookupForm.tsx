@@ -26,8 +26,8 @@ interface LookupFormProps {
   matches: MatchInfo[];
   tournamentName: string;
   organizerName?: string;
-  onSelectResult: (result: { player: PlayerInfo; matches: MatchInfo[] } | null) => void;
-  selectedResult: { player: PlayerInfo; matches: MatchInfo[] } | null;
+  onSelectResults: (results: { player: PlayerInfo; matches: MatchInfo[] }[]) => void;
+  selectedResults: { player: PlayerInfo; matches: MatchInfo[] }[];
 }
 
 export default function LookupForm({
@@ -35,8 +35,8 @@ export default function LookupForm({
   matches,
   tournamentName,
   organizerName,
-  onSelectResult,
-  selectedResult
+  onSelectResults,
+  selectedResults
 }: LookupFormProps) {
   const [query, setQuery] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -71,8 +71,8 @@ export default function LookupForm({
       setQuery(savedQuery);
       // Automatically trigger search if there are matches
       const results = searchPlayerAndMatches(savedQuery, players, matches);
-      if (results.length === 1) {
-        onSelectResult(results[0]);
+      if (results.length > 0) {
+        onSelectResults(results);
       }
     }
   }, [players, matches]);
@@ -103,7 +103,7 @@ export default function LookupForm({
     e.preventDefault();
     const results = searchPlayerAndMatches(query, players, matches);
     if (results.length > 0) {
-      onSelectResult(results[0]); // Select first match
+      onSelectResults(results); // Select all matched babies!
       setIsFocused(false);
       if (rememberMe) {
         localStorage.setItem('tournament_lookup_query', query);
@@ -116,8 +116,10 @@ export default function LookupForm({
   };
 
   const handleSelectSuggestion = (res: { player: PlayerInfo; matches: MatchInfo[] }) => {
-    setQuery(res.player.phone); // Or name
-    onSelectResult(res);
+    // Look up all babies sharing this baby's phone to satisfy "1 phone registers multiple babies"
+    const results = searchPlayerAndMatches(res.player.phone, players, matches);
+    setQuery(res.player.phone); // set parent's phone
+    onSelectResults(results);
     setIsFocused(false);
     if (rememberMe) {
       localStorage.setItem('tournament_lookup_query', res.player.phone);
@@ -127,7 +129,7 @@ export default function LookupForm({
   const handleClearSearch = () => {
     setQuery('');
     setSuggestions([]);
-    onSelectResult(null);
+    onSelectResults([]);
   };
 
   return (
@@ -261,7 +263,7 @@ export default function LookupForm({
       </div>
 
       {/* No query tip */}
-      {!query && !selectedResult && (
+      {!query && selectedResults.length === 0 && (
         <div className="bg-amber-50/40 rounded-2xl p-4 border border-amber-100/50 flex gap-3 text-slate-600 text-xs md:text-sm">
           <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <p>

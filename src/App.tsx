@@ -51,7 +51,7 @@ export default function App() {
   // View state
   const [isAdminView, setIsAdminView] = useState(false);
   const [activeTab, setActiveTab] = useState<'lookup' | 'dashboard'>('lookup');
-  const [selectedResult, setSelectedResult] = useState<{ player: PlayerInfo; matches: MatchInfo[] } | null>(null);
+  const [selectedResults, setSelectedResults] = useState<{ player: PlayerInfo; matches: MatchInfo[] }[]>([]);
 
   // Admin authentication state
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
@@ -232,7 +232,7 @@ export default function App() {
   const handleSelectPlayerFromList = (player: PlayerInfo) => {
     const results = searchPlayerAndMatches(player.phone, players, matches);
     if (results.length > 0) {
-      setSelectedResult(results[0]);
+      setSelectedResults(results);
       setActiveTab('lookup');
     }
   };
@@ -491,24 +491,34 @@ export default function App() {
                         matches={matches}
                         tournamentName={config?.tournamentName || 'Giải đấu chưa đặt tên'}
                         organizerName={config?.organizerName}
-                        selectedResult={selectedResult}
-                        onSelectResult={setSelectedResult}
+                        selectedResults={selectedResults}
+                        onSelectResults={setSelectedResults}
                       />
 
                       {/* Display results */}
                       <AnimatePresence mode="wait">
-                        {selectedResult && (
+                        {selectedResults && selectedResults.length > 0 && (
                           <motion.div
-                            key={selectedResult.player.id}
+                            key={selectedResults.map(r => r.player.id).join(',')}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
+                            className="space-y-8"
                           >
-                            <MatchSchedule 
-                              player={selectedResult.player}
-                              matches={selectedResult.matches}
-                            />
+                            {selectedResults.map((result, rIdx) => (
+                              <div key={result.player.id} className="relative pt-2">
+                                {selectedResults.length > 1 && (
+                                  <div className="absolute top-0 left-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-3xs font-extrabold px-3 py-1 rounded-full shadow-md z-10 uppercase tracking-wider">
+                                    Bé {rIdx + 1}: {result.player.name}
+                                  </div>
+                                )}
+                                <MatchSchedule 
+                                  player={result.player}
+                                  matches={result.matches}
+                                />
+                              </div>
+                            ))}
                           </motion.div>
                         )}
                       </AnimatePresence>

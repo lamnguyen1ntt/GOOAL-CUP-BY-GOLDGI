@@ -112,7 +112,7 @@ export default function MatchSchedule({ player, matches }: MatchScheduleProps) {
   // Filter out extracted keys from dynamic customData mapping to prevent duplication
   const displayedCustomData = Object.entries(player.customData).filter(([key]) => {
     const kLower = key.toLowerCase();
-    return !['sbd', 'số báo danh', 'mã số', 'họ và tên ba/ mẹ', 'họ và tên ba mẹ', 'tên bố mẹ', 'tên phụ huynh', 'ba mẹ', 'bố mẹ', 'phụ huynh', 'địa chỉ hiện tại của bé', 'địa chỉ', 'địa chỉ hiện tại', 'nơi ở', 'kỹ năng hiện tại của bé', 'kỹ năng', 'kỹ năng của bé', 'lượt thi đấu', 'lượt đấu', 'ngày', 'giờ đấu', 'giờ check in', 'bảng đấu'].some(extracted => kLower.includes(extracted));
+    return !['stt', 'sbd', 'số báo danh', 'mã số', 'họ và tên ba/ mẹ', 'họ và tên ba mẹ', 'tên bố mẹ', 'tên phụ huynh', 'ba mẹ', 'bố mẹ', 'phụ huynh', 'địa chỉ hiện tại của bé', 'địa chỉ', 'địa chỉ hiện tại', 'nơi ở', 'kỹ năng hiện tại của bé', 'kỹ năng', 'kỹ năng của bé', 'lượt thi đấu', 'lượt đấu', 'ngày', 'giờ đấu', 'giờ check in', 'bảng đấu'].some(extracted => kLower === extracted || kLower.includes(extracted));
   });
 
   return (
@@ -323,7 +323,7 @@ export default function MatchSchedule({ player, matches }: MatchScheduleProps) {
                     {Object.keys(match.customData).length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-slate-50">
                         {Object.entries(match.customData)
-                          .filter(([k]) => !['giờ check in', 'sbd', 'phụ huynh', 'địa chỉ', 'giờ check-in', 'check in', 'check-in'].some(x => k.toLowerCase().includes(x)))
+                          .filter(([k]) => !['stt', 'giờ check in', 'sbd', 'phụ huynh', 'địa chỉ', 'giờ check-in', 'check in', 'check-in'].some(x => k.toLowerCase().includes(x)))
                           .slice(0, 3).map(([key, val]) => (
                             <span key={key} className="bg-slate-50 px-1.5 py-0.5 rounded text-3xs border border-slate-100 text-slate-400 font-medium">
                               {key}: <b className="text-slate-600">{val}</b>
