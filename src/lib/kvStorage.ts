@@ -3,11 +3,9 @@ import { SpreadsheetConfig } from '../types';
 // We use a dedicated, unique bucket ID for GOOOAL CUP
 const BUCKET_ID = 'gc_goldgi_v3_9a2f7c';
 
-// Helper to get a safe, unique key based on the current domain name
+// Helper to get a unified storage key so all domains (dev, preview, production) share the same config
 function getStorageKey(): string {
-  const hostname = window.location.hostname || 'localhost';
-  // Replace dots or special characters to make a clean key
-  return `config_${hostname.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  return 'global_tournament_config';
 }
 
 /**

@@ -1026,13 +1026,13 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
               </div>
             </div>
             <p className="text-xs text-emerald-850 leading-relaxed">
-              Hệ thống đã tự động lưu thông tin giải đấu và liên kết Google Sheet của bạn lên <b>Cơ sở dữ liệu Đám Mây</b> dành riêng cho tên miền: <span className="font-mono bg-white/70 px-1.5 py-0.5 rounded border border-emerald-200/50 font-bold">{window.location.hostname}</span>.
+              Hệ thống đã tự động lưu thông tin giải đấu và liên kết Google Sheet của bạn lên <b>Cơ sở dữ liệu đám mây chung (Global Cloud Storage)</b>.
             </p>
             <div className="bg-white/80 p-3 rounded-lg border border-emerald-150 text-2xs text-slate-700 leading-relaxed space-y-1 shadow-2xs">
               <p className="font-bold text-emerald-900 flex items-center gap-1">✨ Điểm cộng tuyệt vời:</p>
-              <p>• <b>Không mất dữ liệu:</b> Toàn bộ chữ, giao diện và liên kết Google Sheets đã được lưu trữ an toàn.</p>
-              <p>• <b>Truy cập nhanh:</b> Từ nay trở đi, bạn và người dùng chỉ cần truy cập trực tiếp tên miền <b>https://{window.location.hostname}</b> (hoặc tên miền Vercel của bạn) là website tự động hiển thị giải đấu mới nhất này.</p>
-              <p>• <b>Tự động đồng bộ:</b> Bất cứ khi nào bạn chỉnh sửa thông tin trong trang quản trị này, hệ thống sẽ tự động cập nhật lên đám mây mà không cần cấu hình phức tạp.</p>
+              <p>• <b>Chia sẻ ngay lập tức:</b> Khi bạn gửi bất kỳ đường dẫn nào (Vercel, bản xem trước Preview, v.v.) cho người khác, họ sẽ thấy ngay toàn bộ chữ, giao diện và dữ liệu Google Sheet mới nhất của bạn!</p>
+              <p>• <b>Không bao giờ mất dữ liệu:</b> Bạn không cần copy-paste những chuỗi mã dài dòng nữa, hệ thống tự động lưu trữ và đồng bộ hóa mọi thiết bị.</p>
+              <p>• <b>Tự động đồng bộ:</b> Bất cứ khi nào bạn chỉnh sửa thông tin tại trang quản trị này, tất cả mọi người truy cập trang web đều sẽ được cập nhật đồng thời.</p>
             </div>
           </div>
 
