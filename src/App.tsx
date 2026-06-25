@@ -326,7 +326,7 @@ export default function App() {
                 {config?.tournamentName || "THE GOOOAL CUP BY GOLDGI"}
               </span>
               <span className="text-3xs font-extrabold text-emerald-600 uppercase tracking-wider block">
-                {config?.organizerName ? `${config.organizerName} • Tra cứu: "Tra cứu"}
+                {config?.organizerName ? `${config.organizerName} • Tra cứu` : "Tra cứu"}
               </span>
             </div>
           </div>
