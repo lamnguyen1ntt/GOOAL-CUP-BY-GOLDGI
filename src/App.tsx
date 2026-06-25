@@ -36,7 +36,14 @@ import {
   Search,
   BookOpen,
   ArrowRight,
-  Database
+  Database,
+  Crown,
+  Medal,
+  Award,
+  Shield,
+  Target,
+  Flame,
+  Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -47,6 +54,37 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isDemo, setIsDemo] = useState(false);
+
+  const renderHeaderIcon = () => {
+    const icon = config?.tournamentIcon;
+    if (!icon) {
+      return <Trophy className="w-5 h-5" />;
+    }
+
+    if (icon.startsWith('http://') || icon.startsWith('https://')) {
+      return (
+        <img 
+          src={icon} 
+          alt="Tournament Icon" 
+          referrerPolicy="no-referrer"
+          className="w-7 h-7 object-contain rounded-lg"
+        />
+      );
+    }
+
+    const lowerIcon = icon.toLowerCase().trim();
+    if (lowerIcon === 'trophy') return <Trophy className="w-5 h-5" />;
+    if (lowerIcon === 'crown') return <Crown className="w-5 h-5" />;
+    if (lowerIcon === 'medal') return <Medal className="w-5 h-5" />;
+    if (lowerIcon === 'award') return <Award className="w-5 h-5" />;
+    if (lowerIcon === 'shield') return <Shield className="w-5 h-5" />;
+    if (lowerIcon === 'target') return <Target className="w-5 h-5" />;
+    if (lowerIcon === 'flame') return <Flame className="w-5 h-5" />;
+    if (lowerIcon === 'star') return <Star className="w-5 h-5" />;
+    if (lowerIcon === 'sparkles') return <Sparkles className="w-5 h-5" />;
+
+    return <span className="text-base font-black select-none leading-none">{icon}</span>;
+  };
 
   // View state
   const [isAdminView, setIsAdminView] = useState(false);
@@ -157,6 +195,15 @@ export default function App() {
 
     initializeApp();
   }, []);
+
+  // Sync document title with tournament name
+  useEffect(() => {
+    if (config?.tournamentName) {
+      document.title = config.tournamentName;
+    } else {
+      document.title = "THE GOOOAL CUP BY GOLDGI";
+    }
+  }, [config?.tournamentName]);
 
   // Fetch or reload tournament rows
   const loadTournamentData = async (cfg: SpreadsheetConfig) => {
@@ -271,12 +318,16 @@ export default function App() {
       <header className="bg-white border-b border-slate-100 shadow-xs sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 py-3.5 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-linear-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-md text-white">
-              <Trophy className="w-5 h-5" />
+            <div className="w-9 h-9 bg-linear-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-md text-white overflow-hidden">
+              {renderHeaderIcon()}
             </div>
             <div>
-              <span className="font-black text-slate-800 text-sm tracking-tight block">GOOOAL CUP</span>
-              <span className="text-3xs font-extrabold text-emerald-600 uppercase tracking-wider block">BY GOLDGI • Tra cứu</span>
+              <span className="font-black text-slate-800 text-sm tracking-tight block">
+                {config?.tournamentName || "THE GOOOAL CUP BY GOLDGI"}
+              </span>
+              <span className="text-3xs font-extrabold text-emerald-600 uppercase tracking-wider block">
+                {config?.organizerName ? `${config.organizerName} • Tra cứu` : "Tra cứu"}
+              </span>
             </div>
           </div>
 

@@ -62,6 +62,8 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
   const [footerText, setFooterText] = useState('');
   const [manualPlayersCount, setManualPlayersCount] = useState('');
   const [manualRoundsCount, setManualRoundsCount] = useState('');
+  const [manualCompletedMatchesCount, setManualCompletedMatchesCount] = useState('');
+  const [tournamentIcon, setTournamentIcon] = useState('');
   const [mapping, setMapping] = useState<ColumnMapping>({
     playerName: '',
     playerPhone: '',
@@ -106,6 +108,8 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
       setFooterText(currentConfig.footerText || '');
       setManualPlayersCount(currentConfig.manualPlayersCount || '');
       setManualRoundsCount(currentConfig.manualRoundsCount || '');
+      setManualCompletedMatchesCount(currentConfig.manualCompletedMatchesCount || '');
+      setTournamentIcon(currentConfig.tournamentIcon || '');
       setStep(2); // Jump to mapping/details
     }
   }, [currentConfig]);
@@ -278,6 +282,8 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
       footerText: footerText || undefined,
       manualPlayersCount: manualPlayersCount || undefined,
       manualRoundsCount: manualRoundsCount || undefined,
+      manualCompletedMatchesCount: manualCompletedMatchesCount || undefined,
+      tournamentIcon: tournamentIcon || undefined,
     };
 
     onSaveConfig(config);
@@ -325,6 +331,8 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
         footerText: footerText || undefined,
         manualPlayersCount: manualPlayersCount || undefined,
         manualRoundsCount: manualRoundsCount || undefined,
+        manualCompletedMatchesCount: manualCompletedMatchesCount || undefined,
+        tournamentIcon: tournamentIcon || undefined,
       };
 
       const result = await saveTournamentConfigToDb(configObj);
@@ -521,6 +529,50 @@ export default function AdminPanel({ onSaveConfig, currentConfig, onBackToLookup
                   onChange={(e) => setManualRoundsCount(e.target.value)}
                   className="w-full px-4 py-2 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg text-slate-800 text-sm shadow-sm"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tự điền số trận đã hoàn thành (Ghi đè số liệu)</label>
+                <input 
+                  type="text"
+                  placeholder="Ví dụ: 150 hoặc 150/200 (để trống để tự động tính toán)"
+                  value={manualCompletedMatchesCount}
+                  onChange={(e) => setManualCompletedMatchesCount(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg text-slate-800 text-sm shadow-sm"
+                />
+              </div>
+              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">Icon Giải Đấu (Tùy chỉnh)</label>
+                <div className="flex flex-col gap-3">
+                  <div className="flex-1">
+                    <input 
+                      type="text"
+                      placeholder="Nhập Emoji (🏆, ⚽, etc.), tên icon Lucide (Trophy, Crown, etc.), hoặc link ảnh URL"
+                      value={tournamentIcon}
+                      onChange={(e) => setTournamentIcon(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg text-slate-800 text-sm shadow-sm"
+                    />
+                    <p className="text-3xs text-slate-400 mt-1.5">
+                      Hỗ trợ nhập trực tiếp Emoji, tên icon Lucide (ví dụ: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-600">Trophy</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-600">Crown</code>, <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-600">Medal</code>), hoặc link ảnh đại diện giải đấu.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-2xs text-slate-500 font-medium mr-1">Chọn nhanh:</span>
+                    {['🏆', '⚽', '🎖️', '🏅', '👑', '🌟', '👶', 'Trophy', 'Crown', 'Medal'].map(preset => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setTournamentIcon(preset)}
+                        className={`px-2 py-0.5 text-2xs border rounded-md cursor-pointer transition-all ${
+                          tournamentIcon === preset 
+                            ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs' 
+                            : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tên Đơn Vị Tổ Chức (Không bắt buộc)</label>

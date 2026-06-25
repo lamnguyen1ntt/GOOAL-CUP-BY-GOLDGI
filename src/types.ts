@@ -44,6 +44,8 @@ export interface SpreadsheetConfig {
   footerText?: string;
   manualPlayersCount?: string;
   manualRoundsCount?: string;
+  manualCompletedMatchesCount?: string;
+  tournamentIcon?: string;
 }
 
 export interface PlayerInfo {

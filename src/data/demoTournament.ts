@@ -5,7 +5,7 @@ export const DEMO_CONFIG: SpreadsheetConfig = {
   playersTabName: 'Danh sách Bé đăng ký',
   matchesTabName: 'Lịch thi đấu',
   mode: AppMode.SINGLE_SHEET_PLAYERS,
-  tournamentName: 'GOOAL CUP BY GOLDGI',
+  tournamentName: 'THE GOOOAL CUP BY GOLDGI',
   organizerName: 'BỈM NHẬT BẢN GOLDGI',
   bannerUrl: 'https://goldgi.com.vn/wp-content/uploads/2026/06/background-KV-01-2-scaled.jpg',
   footerText: 'Phần mềm được phát triển bởi Lâm Awesomeboy',

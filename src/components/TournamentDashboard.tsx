@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlayerInfo, MatchInfo, SpreadsheetConfig } from '../types';
+import { PlayerInfo, MatchInfo, SpreadsheetConfig, AppMode } from '../types';
 import { 
   Trophy, 
   Users, 
@@ -45,6 +45,40 @@ export default function TournamentDashboard({ players, matches, onSelectPlayer, 
     const s = m.status?.toLowerCase() || '';
     return s.includes('đã xong') || s.includes('hoàn thành') || s.includes('xong') || s.includes('kết thúc');
   }).length;
+
+  // Compute unique sessions count (for a better default total matches divisor in single-sheet players mode)
+  const uniqueSessionsSet = new Set<string>();
+  matches.forEach(match => {
+    let checkInTime = '';
+    const keys = ['Giờ check in', 'Giờ check-in', 'Check in', 'Check-in', 'Giờ điểm danh', 'Điểm danh', 'Checkin'];
+    for (const k of keys) {
+      if (match.customData[k]) {
+        checkInTime = match.customData[k];
+        break;
+      }
+      const foundKey = Object.keys(match.customData).find(ck => 
+        k.toLowerCase().trim() === ck.toLowerCase().trim() || 
+        ck.toLowerCase().includes(k.toLowerCase())
+      );
+      if (foundKey) {
+        checkInTime = match.customData[foundKey];
+        break;
+      }
+    }
+    const sessionKey = `${match.round || ''}|${match.group || match.customData['Bảng'] || ''}|${match.time || ''}|${match.court || ''}|${checkInTime}`;
+    uniqueSessionsSet.add(sessionKey);
+  });
+  
+  const totalUniqueSessionsCount = uniqueSessionsSet.size || totalMatches;
+  const defaultTotalMatchesDivisor = config?.mode === AppMode.SINGLE_SHEET_PLAYERS 
+    ? totalUniqueSessionsCount 
+    : totalMatches;
+
+  const displayedCompletedMatchesStr = config?.manualCompletedMatchesCount
+    ? (config.manualCompletedMatchesCount.includes('/')
+        ? config.manualCompletedMatchesCount
+        : `${config.manualCompletedMatchesCount} / ${defaultTotalMatchesDivisor}`)
+    : `${completedMatches} / ${defaultTotalMatchesDivisor}`;
 
   const upcomingMatches = totalMatches - completedMatches - liveMatches;
 
@@ -200,7 +234,7 @@ export default function TournamentDashboard({ players, matches, onSelectPlayer, 
           </div>
           <div>
             <span className="block text-3xs font-bold text-slate-400 uppercase tracking-wider">Đã hoàn thành</span>
-            <span className="text-xl font-extrabold text-slate-800">{completedMatches} / {totalMatches}</span>
+            <span className="text-xl font-extrabold text-slate-800"> ĐANG CẬP NHẬT</span>
           </div>
         </div>
       </div>
